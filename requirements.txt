@@ -1,0 +1,5 @@
+flask-wtf
+flask~=2.2.2
+sqlalchemy~=2.0.3
+Werkzeug~=2.2.2
+WTForms~=3.0.1
