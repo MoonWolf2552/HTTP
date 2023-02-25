@@ -1,11 +1,13 @@
 import datetime
-from flask import Flask, render_template, redirect, request, make_response, session
+from flask import Flask, render_template, redirect, request, make_response, session, abort
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 
 from data import db_session
+from data.category import Category
 from data.news import News
 from data.users import User
 from forms.loginform import LoginForm
+from forms.news import NewsForm
 from forms.user import RegisterForm
 
 app = Flask(__name__)
@@ -43,6 +45,86 @@ def logout():
     return redirect("/")
 
 
+@app.route('/news', methods=['GET', 'POST'])
+@login_required
+def add_news():
+    form = NewsForm()
+    db_sess = db_session.create_session()
+    categories = db_sess.query(Category).all()
+    form.category.choices = [(i.id, i.name) for i in categories]
+    if form.validate_on_submit():
+        news = News()
+        news.title = form.title.data
+        news.content = form.content.data
+        news.is_private = form.is_private.data
+        news.categories.append(
+            db_sess.query(Category).filter(Category.id == form.category.data).first())
+
+        # current_user.news.append(news)
+        # db_sess.merge(current_user)
+
+        news.user = current_user
+        db_sess.merge(news)
+
+        db_sess.commit()
+        return redirect('/')
+    return render_template('news.html', title='Добавление новости',
+                           form=form)
+
+
+@app.route('/news/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_news(id):
+    form = NewsForm()
+    db_sess = db_session.create_session()
+    categories = db_sess.query(Category).all()
+    form.category.choices = [(i.id, i.name) for i in categories]
+    if request.method == "GET":
+        news = db_sess.query(News).filter(News.id == id,
+                                          News.user == current_user
+                                          ).first()
+        if news:
+            form.title.data = news.title
+            form.content.data = news.content
+            form.is_private.data = news.is_private
+        else:
+            abort(404)
+    if form.validate_on_submit():
+        news = db_sess.query(News).filter(News.id == id,
+                                          News.user == current_user
+                                          ).first()
+        if news:
+            news.title = form.title.data
+            news.content = form.content.data
+            news.is_private = form.is_private.data
+            for i in form.category.data:
+                news.categories.append(
+                    db_sess.query(Category).filter(Category.id == i).first())
+            db_sess.commit()
+            return redirect('/')
+        else:
+            abort(404)
+    return render_template('news.html',
+                           title='Редактирование новости',
+                           form=form
+                           )
+
+
+@app.route('/news_delete/<int:id>', methods=['GET', 'POST'])
+@login_required
+def news_delete(id):
+    db_sess = db_session.create_session()
+    news = db_sess.query(News).filter(News.id == id,
+                                      News.user == current_user
+                                      ).first()
+    if news:
+        db_sess.delete(news)
+        db_sess.commit()
+    else:
+        abort(404)
+    return redirect('/')
+
+
 @app.route("/cookie_test")
 def cookie_test():
     visits_count = int(request.cookies.get("visits_count", 0))
@@ -72,7 +154,7 @@ def index():
     db_sess = db_session.create_session()
     if current_user.is_authenticated:
         news = db_sess.query(News).filter(
-            News.user == current_user)
+            (News.user == current_user) | (News.is_private != True))
     else:
         news = db_sess.query(News).filter(News.is_private != True)
     return render_template("index.html", news=news)
@@ -150,6 +232,12 @@ def main():
     # news = News(title="Не личная запись", content="Эта запись не личная",
     #             is_private=False)
     # user.news.append(news)
+    # db_sess.commit()
+
+    # cat = Category(name='Анекдоты')
+    # db_sess.add(cat)
+    # cat = Category(name='Штирлиц')
+    # db_sess.add(cat)
     # db_sess.commit()
 
 
