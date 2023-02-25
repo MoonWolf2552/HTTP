@@ -87,6 +87,7 @@ def edit_news(id):
             form.title.data = news.title
             form.content.data = news.content
             form.is_private.data = news.is_private
+            form.category.data = [i.id for i in categories]
         else:
             abort(404)
     if form.validate_on_submit():
@@ -97,6 +98,7 @@ def edit_news(id):
             news.title = form.title.data
             news.content = form.content.data
             news.is_private = form.is_private.data
+            news.categories = []
             news.categories.extend(
                 db_sess.query(Category).filter(Category.id.in_(form.category.data)).all())
             db_sess.commit()
