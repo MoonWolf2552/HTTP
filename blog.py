@@ -57,8 +57,8 @@ def add_news():
         news.title = form.title.data
         news.content = form.content.data
         news.is_private = form.is_private.data
-        news.categories.append(
-            db_sess.query(Category).filter(Category.id == form.category.data).first())
+        news.categories.extend(
+            db_sess.query(Category).filter(Category.id.in_(form.category.data)).all())
 
         # current_user.news.append(news)
         # db_sess.merge(current_user)
@@ -97,9 +97,8 @@ def edit_news(id):
             news.title = form.title.data
             news.content = form.content.data
             news.is_private = form.is_private.data
-            for i in form.category.data:
-                news.categories.append(
-                    db_sess.query(Category).filter(Category.id == i).first())
+            news.categories.extend(
+                db_sess.query(Category).filter(Category.id.in_(form.category.data)).all())
             db_sess.commit()
             return redirect('/')
         else:
