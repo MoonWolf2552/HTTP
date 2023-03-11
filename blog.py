@@ -1,8 +1,9 @@
 import datetime
-from flask import Flask, render_template, redirect, request, make_response, session, abort
+from flask import Flask, render_template, redirect, request, make_response, session, abort, jsonify
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from flask_restful import reqparse, abort, Api, Resource
 
-from data import db_session
+from data import db_session, news_api, news_resources
 from data.category import Category
 from data.news import News
 from data.users import User
@@ -12,9 +13,17 @@ from forms.user import RegisterForm
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'yandexlyceum_secret_key'
+api = Api(app)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
+
+
+# для списка объектов
+api.add_resource(news_resources.NewsListResource, '/api/v2/news')
+
+# для одного объекта
+api.add_resource(news_resources.NewsResource, '/api/v2/news/<int:news_id>')
 
 
 @login_manager.user_loader
@@ -186,16 +195,19 @@ def register():
     return render_template('register.html', title='Регистрация', form=form)
 
 
-# @app.route('/login', methods=['GET', 'POST'])
-# def login():
-#     form = LoginForm()
-#     if form.validate_on_submit():
-#         return redirect('/index')
-#     return render_template('login.html', title='Авторизация', form=form)
+# @app.errorhandler(404)
+# def not_found(error):
+#     return make_response(jsonify({'error': 'Not found'}), 404)
+#
+#
+# @app.errorhandler(400)
+# def bad_request(_):
+#     return make_response(jsonify({'error': 'Bad Request'}), 400)
 
 
 def main():
     db_session.global_init("db/blogs.db")
+    app.register_blueprint(news_api.blueprint)
     app.run(port=8080, host='127.0.0.1')
 
     # db_sess = db_session.create_session()
