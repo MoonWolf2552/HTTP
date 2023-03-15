@@ -1,4 +1,6 @@
 import datetime
+import os
+
 from flask import Flask, render_template, redirect, request, make_response, session, abort, jsonify
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_restful import reqparse, abort, Api, Resource
@@ -10,6 +12,7 @@ from data.users import User
 from forms.loginform import LoginForm
 from forms.news import NewsForm
 from forms.user import RegisterForm
+from waitress import serve
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'yandexlyceum_secret_key'
@@ -17,7 +20,6 @@ api = Api(app)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
-
 
 # для списка объектов
 api.add_resource(news_resources.NewsListResource, '/api/v2/news')
@@ -208,7 +210,11 @@ def register():
 def main():
     db_session.global_init("db/blogs.db")
     app.register_blueprint(news_api.blueprint)
-    app.run(port=8080, host='127.0.0.1')
+
+    # app.run(port=8080, host='127.0.0.1')
+
+    port = int(os.environ.get('PORT', 8080))
+    serve(app, port=port, host="127.0.0.1")
 
     # db_sess = db_session.create_session()
     # user = User()

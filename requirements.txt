@@ -4,4 +4,4 @@ sqlalchemy
 flask-login
 SQLAlchemy-serializer
 flask-restful
-alembic
+waitress
